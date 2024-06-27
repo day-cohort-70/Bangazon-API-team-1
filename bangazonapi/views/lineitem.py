@@ -62,7 +62,7 @@ class LineItems(ViewSet):
 
     def destroy(self, request, pk=None):
         """
-        @api {DELETE} /cart/:id DELETE line item from cart
+        @api {DELETE} /lineitems/:id DELETE line item from cart
         @apiName RemoveLineItem
         @apiGroup ShoppingCart
 
