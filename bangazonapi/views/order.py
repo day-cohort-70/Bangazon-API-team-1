@@ -37,6 +37,25 @@ class OrderSerializer(serializers.HyperlinkedModelSerializer):
         )
         fields = ('id', 'url', 'created_date', 'payment_type', 'customer', 'lineitems')
 
+class IncompleteOrderSerializer(serializers.ModelSerializer):
+    """JSON serializer for customer orders"""
+    customer_name = serializers.CharField(source='customer.user.last_name', read_only=True)
+    total_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ('id', 'customer_name', 'total_price')
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Calculate the total price by summing the prices of all related OrderProducts
+        total_price = instance.calculate_total_price()
+        if total_price is not None:
+            representation['total_price'] = total_price
+        else:
+            representation['total_price'] = 0
+        return representation
+
 
 class Orders(ViewSet):
     """View for interacting with customer orders"""
@@ -139,14 +158,23 @@ class Orders(ViewSet):
                 }
             ]
         """
-        customer = Customer.objects.get(user=request.auth.user)
-        orders = Order.objects.filter(customer=customer)
+        payment_status = self.request.query_params.get('status', None)
+        if payment_status == 'incomplete':
+            orders = Order.objects.filter(payment_type__isnull=True).select_related('customer').prefetch_related('lineitems')
 
-        payment = self.request.query_params.get('payment_id', None)
-        if payment is not None:
-            orders = orders.filter(payment__id=payment)
+            # Use IncompleteOrderSerializer to serialize the orders, including calculating total price
+            json_orders = IncompleteOrderSerializer(orders, many=True, context={'request': request})
 
-        json_orders = OrderSerializer(
-            orders, many=True, context={'request': request})
+            return Response(json_orders.data)
+        else:
+            customer = Customer.objects.get(user=request.auth.user)
+            orders = Order.objects.filter(customer=customer)
 
-        return Response(json_orders.data)
+            payment = self.request.query_params.get('payment_id', None)
+            if payment is not None:
+                orders = orders.filter(payment__id=payment)
+
+            json_orders = OrderSerializer(
+                orders, many=True, context={'request': request})
+
+            return Response(json_orders.data)
