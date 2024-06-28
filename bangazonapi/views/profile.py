@@ -265,61 +265,87 @@ class Profile(ViewSet):
 
         return Response({}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @action(methods=["get"], detail=False)
+
+
+    @action(methods=["get", "post"], detail=False)
     def favoritesellers(self, request):
-        """
-        @api {GET} /profile/favoritesellers GET favorite sellers
-        @apiName GetFavoriteSellers
-        @apiGroup UserProfile
 
-        @apiHeader {String} Authorization Auth token
-        @apiHeaderExample {String} Authorization
-            Token 9ba45f09651c5b0c404f37a2d2572c026c146611
+        current_user = Customer.objects.get(user=request.auth.user)
 
-        @apiSuccess (200) {id} id Favorite id
-        @apiSuccess (200) {Object} seller Favorited seller
-        @apiSuccess (200) {String} seller.url Seller URI
-        @apiSuccess (200) {String} seller.phone_number Seller phone number
-        @apiSuccess (200) {String} seller.address Seller address
-        @apiSuccess (200) {String} seller.user Seller user profile URI
-        @apiSuccessExample {json} Success
-            [
-                {
-                    "id": 1,
-                    "seller": {
-                        "url": "http://localhost:8000/customers/5",
-                        "phone_number": "555-1212",
-                        "address": "100 Endless Way",
-                        "user": "http://localhost:8000/users/6"
-                    }
-                },
-                {
-                    "id": 2,
-                    "seller": {
-                        "url": "http://localhost:8000/customers/6",
-                        "phone_number": "555-1212",
-                        "address": "100 Dauntless Way",
-                        "user": "http://localhost:8000/users/7"
-                    }
-                },
-                {
-                    "id": 3,
-                    "seller": {
-                        "url": "http://localhost:8000/customers/7",
-                        "phone_number": "555-1212",
-                        "address": "100 Indefatiguable Way",
-                        "user": "http://localhost:8000/users/8"
-                    }
-                }
-            ]
-        """
-        customer = Customer.objects.get(user=request.auth.user)
-        favorites = Favorite.objects.filter(customer=customer)
+        if request.method == "GET":
+            """
+            @api {GET} /profile/favoritesellers GET favorite sellers
+            @apiName GetFavoriteSellers
+            @apiGroup UserProfile
 
-        serializer = FavoriteSerializer(
-            favorites, many=True, context={"request": request}
-        )
-        return Response(serializer.data)
+            @apiHeader {String} Authorization Auth token
+            @apiHeaderExample {String} Authorization
+                Token 9ba45f09651c5b0c404f37a2d2572c026c146611
+
+            @apiSuccess (200) {id} id Favorite id
+            @apiSuccess (200) {Object} seller Favorited seller
+            @apiSuccess (200) {String} seller.url Seller URI
+            @apiSuccess (200) {String} seller.phone_number Seller phone number
+            @apiSuccess (200) {String} seller.address Seller address
+            @apiSuccess (200) {String} seller.user Seller user profile URI
+            @apiSuccessExample {json} Success
+                [
+                    {
+                        "id": 1,
+                        "seller": {
+                            "url": "http://localhost:8000/customers/5",
+                            "phone_number": "555-1212",
+                            "address": "100 Endless Way",
+                            "user": "http://localhost:8000/users/6"
+                        }
+                    },
+                    {
+                        "id": 2,
+                        "seller": {
+                            "url": "http://localhost:8000/customers/6",
+                            "phone_number": "555-1212",
+                            "address": "100 Dauntless Way",
+                            "user": "http://localhost:8000/users/7"
+                        }
+                    },
+                    {
+                        "id": 3,
+                        "seller": {
+                            "url": "http://localhost:8000/customers/7",
+                            "phone_number": "555-1212",
+                            "address": "100 Indefatiguable Way",
+                            "user": "http://localhost:8000/users/8"
+                        }
+                    }
+                ]
+            """
+           
+            favorites = Favorite.objects.filter(customer=current_user)
+            serializer = FavoriteSerializer(favorites, many=True, context={"request": request})
+            return Response(serializer.data)
+
+        if request.method == "POST":
+            store_id = request.data.get("store_id")
+            if not store_id:
+                return Response({"detail": "Store ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                seller = Customer.objects.get(pk=store_id)
+            except Customer.DoesNotExist:
+                return Response({"detail": "Seller not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            favorite_exists = Favorite.objects.filter(customer=current_user, seller=seller).exists()
+
+            if favorite_exists:
+                return Response({"detail": "Seller is already favorited."}, status=status.HTTP_400_BAD_REQUEST)
+
+            favorite_store = Favorite(customer=current_user, seller=seller)
+            favorite_store.save()
+
+            serializer = FavoriteSerializer(
+                favorite_store, many=False, context={"request": request}
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class LineItemSerializer(serializers.HyperlinkedModelSerializer):
@@ -455,5 +481,5 @@ class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Favorite
-        fields = ("id", "seller")
-        depth = 2
+        fields = ("seller",)
+        depth = 1
