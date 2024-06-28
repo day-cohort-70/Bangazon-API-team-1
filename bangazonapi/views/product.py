@@ -34,6 +34,11 @@ class ProductSerializer(serializers.ModelSerializer):
         )
         depth = 1
 
+    def validate_price(self, value):
+        if value > 17500.00:
+            raise serializers.ValidationError("Price must be under $17,500")
+        return value
+
 
 class Products(ViewSet):
     """Request handlers for Products in the Bangazon Platform"""
@@ -105,26 +110,26 @@ class Products(ViewSet):
         new_product.location = request.data["location"]
 
         customer = Customer.objects.get(user=request.auth.user)
-        new_product.customer = customer
-
         product_category = ProductCategory.objects.get(pk=request.data["category_id"])
+
+        new_product.customer = customer
         new_product.category = product_category
 
-        if "image_path" in request.data:
-            format, imgstr = request.data["image_path"].split(";base64,")
-            ext = format.split("/")[-1]
-            data = ContentFile(
-                base64.b64decode(imgstr),
-                name=f'{new_product.id}-{request.data["name"]}.{ext}',
-            )
+        serializer = ProductSerializer(data=request.data)
+        if serializer.is_valid():
+            if "image_path" in request.data:
+                format, imgstr = request.data["image_path"].split(";base64,")
+                ext = format.split("/")[-1]
+                data = ContentFile(
+                    base64.b64decode(imgstr),
+                    name=f'{new_product.id}-{request.data["name"]}.{ext}',
+                )
+                new_product.image_path = data
 
-            new_product.image_path = data
+            new_product.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        new_product.save()
-
-        serializer = ProductSerializer(new_product, context={"request": request})
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, pk=None):
         """
@@ -330,3 +335,4 @@ class Products(ViewSet):
             return Response(None, status=status.HTTP_204_NO_CONTENT)
 
         return Response(None, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
