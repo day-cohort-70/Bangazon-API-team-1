@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incomplete orders : </title>
+</head>
+<body>
+    <h1>Incomplete orders :</h1>
+    <ul>
+        {% for order in my_orders %}
+        <table>
+            <tr>
+                <td>ID:</td>
+                <td>{{ order.id }}</td>
+            </tr>
+            <tr>
+                <td>Customer Name:</td>
+                <td>{{ order.customer_name }}</td>
+            </tr>
+            <tr>
+                <td>Total cost:</td>
+                <td>{{ order.total_price }}</td>
+            </tr>
+            <!-- Add more rows as needed -->
+        </table>
+    {% endfor %}    
+    </ul>
+
+</body>
+</html>
