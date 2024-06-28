@@ -272,6 +272,8 @@ class Products(ViewSet):
         order = self.request.query_params.get("order_by", None)
         direction = self.request.query_params.get("direction", None)
         number_sold = self.request.query_params.get("number_sold", None)
+        min_price = self.request.query_params.get("min_price", None)
+        max_price = self.request.query_params.get("max_price", None)
 
         if order is not None:
             order_filter = order
@@ -297,6 +299,22 @@ class Products(ViewSet):
 
             products = filter(sold_filter, products)
 
+        if min_price is not None:
+            def min_price_filter(product):
+                if product.price >= int(min_price):
+                    return True
+                return False
+
+            products = filter(min_price_filter, products)
+
+        if max_price is not None:
+            def max_price_filter(product):
+                if product.price <= int(max_price):
+                    return True
+                return False
+
+            products = filter(max_price_filter, products)
+
         serializer = ProductSerializer(
             products, many=True, context={"request": request}
         )
@@ -317,3 +335,4 @@ class Products(ViewSet):
             return Response(None, status=status.HTTP_204_NO_CONTENT)
 
         return Response(None, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
