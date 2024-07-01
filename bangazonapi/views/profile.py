@@ -78,6 +78,13 @@ class Profile(ViewSet):
                                 "email": "joe@joeshepherd.com"
                             }
                         }
+                    },
+                    "favorites": [
+                    {
+                        "store": {
+                            "name": "DB9",
+                            "description": "this is a description"
+                        },
                     }
                 ]
             }
@@ -414,28 +421,7 @@ class RecommenderSerializer(serializers.ModelSerializer):
         )
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    """JSON serializer for customer profile
 
-    Arguments:
-        serializers
-    """
-
-    user = UserSerializer(many=False)
-    recommends = RecommenderSerializer(many=True)
-
-    class Meta:
-        model = Customer
-        fields = (
-            "id",
-            "url",
-            "user",
-            "phone_number",
-            "address",
-            "payment_types",
-            "recommends",
-        )
-        depth = 1
 
 
 class FavoriteUserSerializer(serializers.HyperlinkedModelSerializer):
@@ -447,7 +433,7 @@ class FavoriteUserSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = User
-        fields = ("first_name", "last_name", "username")
+        fields = ("first_name", "last_name", "username", "url",)
         depth = 1
 
 
@@ -463,8 +449,9 @@ class FavoriteSellerSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Customer
         fields = (
-            "id",
             "url",
+            "phone_number",
+            "address",
             "user",
         )
         depth = 1
@@ -482,4 +469,30 @@ class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Favorite
         fields = ("seller",)
+        depth = 1
+
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """JSON serializer for customer profile
+
+    Arguments:
+        serializers
+    """
+
+    user = UserSerializer(many=False)
+    recommends = RecommenderSerializer(many=True)
+    favorites = 
+
+    class Meta:
+        model = Customer
+        fields = (
+            "id",
+            "url",
+            "user",
+            "phone_number",
+            "address",
+            "payment_types",
+            "recommends",
+        )
         depth = 1
