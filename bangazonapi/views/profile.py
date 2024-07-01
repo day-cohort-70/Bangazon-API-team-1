@@ -469,7 +469,7 @@ class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Favorite
         fields = ("seller",)
-        depth = 1
+        depth = 2
 
 
 
@@ -482,7 +482,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     user = UserSerializer(many=False)
     recommends = RecommenderSerializer(many=True)
-    favorites = 
+    # favorites = FavoriteSerializer(many=True)
 
     class Meta:
         model = Customer

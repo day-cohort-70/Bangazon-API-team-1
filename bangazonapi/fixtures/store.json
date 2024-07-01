@@ -1,0 +1,38 @@
+[
+    {
+        "pk": 1,
+        "model": "bangazonapi.store",
+        "fields": {
+            "name": "The Hungry Hippo",
+            "description": "A quirky store that sells used toys!",
+            "seller": 4
+        }
+    },
+    {
+        "pk": 2,
+        "model": "bangazonapi.store",
+        "fields": {
+            "name": "Girls Just Wanna Have Fun",
+            "description": "Fashionistas welcome! Our store sells cute clothes for every budget!",
+            "seller": 5
+        }
+    },
+    {
+        "pk": 3,
+        "model": "bangazonapi.store",
+        "fields": {
+            "name": "Trinkets and Things",
+            "description": "Come have a look at my thrift finds!",
+            "seller": 6
+        }
+    },
+    {
+        "pk": 4,
+        "model": "bangazonapi.store",
+        "fields": {
+            "name": "GAMERZ",
+            "description": "New and gently used video games",
+            "seller": 7
+        }
+    }
+]
