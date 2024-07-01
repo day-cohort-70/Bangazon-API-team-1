@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
 from rest_framework.decorators import action
-from bangazonapi.models import Store
+from bangazonapi.models import Store, Customer
 
 
 class StoreSerializer(serializers.ModelSerializer):

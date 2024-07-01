@@ -11,8 +11,10 @@ from rest_framework.viewsets import ViewSet
 from bangazonapi.models import Order, Customer, Product
 from bangazonapi.models import OrderProduct, Favorite
 from bangazonapi.models import Recommendation
+from bangazonapi.models import Store
 from .product import ProductSerializer
 from .order import OrderSerializer
+from .store import StoreSerializer
 
 
 class Profile(ViewSet):
@@ -354,6 +356,46 @@ class Profile(ViewSet):
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
+
+    @action(methods=["get", "post"], detail=False)
+    def store(self, request):
+
+        current_user = Customer.objects.get(user=request.auth.user)
+
+        if request.method == "GET":
+            """
+            @apiGET {GET} /profile/store GETS seller's store
+            @apiName GetSellerStore
+            @apiGroup SellerStore
+
+            @apiHeader {String} Authorization Auth token
+            @apiHeaderExample {String} Authorization
+                Token 9ba45f09651c5b0c404f37a2d2572c026c14669c
+
+            @apiSuccess (200) {string} store object for Seller
+            @apiSuccessExample {json} Success
+                {
+                    "name": "GAMERZ",
+                    "description": "New and gently used video games",
+                    "seller": {
+                        "id": 7,
+                        "phone_number": "555-1212",
+                        "address": "100 Indefatiguable Way",
+                        "user": 8
+                    }
+                }
+            """
+
+            
+            seller_store = Store.objects.get(seller=current_user)
+            serializer = StoreSerializer(seller_store, many=False, context={"request": request})
+            return Response(serializer.data)
+        
+        
+        return Response({'message': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        
 
 class LineItemSerializer(serializers.HyperlinkedModelSerializer):
     """JSON serializer for products
