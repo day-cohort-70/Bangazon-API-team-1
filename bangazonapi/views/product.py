@@ -277,7 +277,7 @@ class Products(ViewSet):
         categories = ProductCategory.objects.all()
         products_by_category = {}
 
-        # Support filtering by category and/or quantity
+        # Support filtering by category 
         search_term = self.request.query_params.get("search", None)
         category_filter = self.request.query_params.get("category", None)
         quantity = self.request.query_params.get("quantity", None)
@@ -288,18 +288,20 @@ class Products(ViewSet):
         max_price = self.request.query_params.get("max_price", None)
         location_contains = self.request.query_params.get("location", None)
 
+
+        #checks if the user has provided any filters to apply to the product list.
         if any([search_term, category_filter, quantity, order, direction, min_number_sold, min_price, max_price, location_contains]):
             filtered_products = Product.objects.all()
-
+            #Apply search term filter
             if search_term:
                 filtered_products = [product for product in filtered_products if search_term.lower() in product.name.lower()]
-
+            #Apply category filter
             if category_filter:
                 filtered_products = filtered_products.filter(category__id=category_filter)
-
+            #Apply quantity filter
             if quantity:
                 filtered_products = filtered_products.filter(quantity__gte=quantity)
-
+                                        #gte is a built in Django query syntax for greater than or equal to.
             if order:
                 order_filter = order
                 if direction == "desc":
