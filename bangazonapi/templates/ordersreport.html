@@ -8,19 +8,18 @@
     <ul>
         {% for order in my_orders %}
         <table>
-            <tr>
+            <div>
                 <td>ID:</td>
                 <td>{{ order.id }}</td>
-            </tr>
-            <tr>
+            </div>
+            <div>
                 <td>Customer Name:</td>
                 <td>{{ order.customer_name }}</td>
-            </tr>
-            <tr>
+            </div>
+            <div>
                 <td>Total cost:</td>
                 <td>{{ order.total_price }}</td>
-            </tr>
-            <!-- Add more rows as needed -->
+            </div>
         </table>
     {% endfor %}    
     </ul>

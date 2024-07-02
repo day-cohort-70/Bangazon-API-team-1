@@ -166,23 +166,14 @@ class Orders(ViewSet):
                 }
             ]
         """
-        payment_status = self.request.query_params.get('status', None)
-        if payment_status == 'incomplete':
-            orders = Order.objects.filter(payment_type__isnull=True).select_related('customer').prefetch_related('lineitems')
+        customer = Customer.objects.get(user=request.auth.user)
+        orders = Order.objects.filter(customer=customer)
 
-            # Use IncompleteOrderSerializer to serialize the orders, including calculating total price
-            json_orders = IncompleteOrderSerializer(orders, many=True, context={'request': request})
+        payment = self.request.query_params.get('payment_id', None)
+        if payment is not None:
+            orders = orders.filter(payment__id=payment)
 
-            return Response(json_orders.data)
-        else:
-            customer = Customer.objects.get(user=request.auth.user)
-            orders = Order.objects.filter(customer=customer)
+        json_orders = OrderSerializer(
+            orders, many=True, context={'request': request})
 
-            payment = self.request.query_params.get('payment_id', None)
-            if payment is not None:
-                orders = orders.filter(payment__id=payment)
-
-            json_orders = OrderSerializer(
-                orders, many=True, context={'request': request})
-
-            return Response(json_orders.data)
+        return Response(json_orders.data)

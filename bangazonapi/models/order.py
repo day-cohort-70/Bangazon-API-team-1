@@ -11,5 +11,5 @@ class Order(models.Model):
     created_date = models.DateField(default="0000-00-00")
 
     def calculate_total_price(self):
-        total_price = sum([op.product.price for op in self.lineitems.all()])
+        total_price = sum([products.product.price for products in self.lineitems.all()])
         return total_price
