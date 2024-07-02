@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incomplete orders : </title>
+</head>
+<body>
+    <h1>Incomplete orders :</h1>
+    <ul>
+        {% for order in my_orders %}
+        <table>
+            <div>
+                <td>ID:</td>
+                <td>{{ order.id }}</td>
+            </div>
+            <div>
+                <td>Customer Name:</td>
+                <td>{{ order.customer_name }}</td>
+            </div>
+            <div>
+                <td>Total cost:</td>
+                <td>{{ order.total_price }}</td>
+            </div>
+        </table>
+    {% endfor %}    
+    </ul>
+
+</body>
+</html>
