@@ -1,4 +1,5 @@
 from rest_framework.viewsets import ViewSet
+from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.http import HttpResponseServerError
 from rest_framework.response import Response
@@ -8,8 +9,25 @@ from rest_framework.decorators import action
 from bangazonapi.models import Store, Customer
 
 
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "username", "url",)
+        depth = 1
+
+class SellerSerializer(serializers.HyperlinkedModelSerializer):
+    user = UserSerializer(many=False)
+
+    class Meta:
+        model = Customer
+        fields = (
+            "url", "phone_number", "address", "user",)
+        depth = 1
+
 class StoreSerializer(serializers.ModelSerializer):
     """JSON serializer for stores"""
+    seller = SellerSerializer(many=False)
 
     class Meta:
         model = Store

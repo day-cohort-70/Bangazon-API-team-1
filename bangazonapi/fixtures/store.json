@@ -5,7 +5,7 @@
         "fields": {
             "name": "The Hungry Hippo",
             "description": "A quirky store that sells used toys!",
-            "seller": 4
+            "seller_id": 4
         }
     },
     {
@@ -14,7 +14,7 @@
         "fields": {
             "name": "Girls Just Wanna Have Fun",
             "description": "Fashionistas welcome! Our store sells cute clothes for every budget!",
-            "seller": 5
+            "seller_id": 5
         }
     },
     {
@@ -23,7 +23,7 @@
         "fields": {
             "name": "Trinkets and Things",
             "description": "Come have a look at my thrift finds!",
-            "seller": 6
+            "seller_id": 6
         }
     },
     {
@@ -32,7 +32,7 @@
         "fields": {
             "name": "GAMERZ",
             "description": "New and gently used video games",
-            "seller": 7
+            "seller_id": 7
         }
     }
 ]
