@@ -300,36 +300,24 @@ class Profile(ViewSet):
             @apiSuccess (200) {String} seller.phone_number Seller phone number
             @apiSuccess (200) {String} seller.address Seller address
             @apiSuccess (200) {String} seller.user Seller user profile URI
-            @apiSuccessExample {json} Success
-                [
-                    {
-                        "id": 1,
-                        "seller": {
-                            "url": "http://localhost:8000/customers/5",
-                            "phone_number": "555-1212",
-                            "address": "100 Endless Way",
-                            "user": "http://localhost:8000/users/6"
-                        }
-                    },
-                    {
-                        "id": 2,
-                        "seller": {
-                            "url": "http://localhost:8000/customers/6",
-                            "phone_number": "555-1212",
-                            "address": "100 Dauntless Way",
-                            "user": "http://localhost:8000/users/7"
-                        }
-                    },
-                    {
-                        "id": 3,
-                        "seller": {
-                            "url": "http://localhost:8000/customers/7",
-                            "phone_number": "555-1212",
-                            "address": "100 Indefatiguable Way",
-                            "user": "http://localhost:8000/users/8"
+            @apiSuccessExample {json} Success One or more list of stores customer has favorited
+            [
+                {
+                    "name": "The Hungry Hippo",
+                    "description": "A quirky store that sells used toys!",
+                    "seller": {
+                        "url": "http://localhost:8000/customers/4",
+                        "phone_number": "555-1212",
+                        "address": "100 Infinity Way",
+                        "user": {
+                            "first_name": "Steve",
+                            "last_name": "Brownlee",
+                            "username": "steve",
+                            "url": "http://localhost:8000/users/5"
                         }
                     }
-                ]
+                }
+            ]
             """
            
             favorites = Favorite.objects.filter(customer=current_user)
@@ -338,6 +326,7 @@ class Profile(ViewSet):
             return Response(serializer.data)
 
         if request.method == "POST":
+
             store_id = request.data.get("store_id")
             if not store_id:
                 return Response({"message": "Must provide store ID."}, status=status.HTTP_400_BAD_REQUEST)
@@ -349,7 +338,7 @@ class Profile(ViewSet):
 
             favorite = Favorite()
             favorite.customer = current_user
-            favorite.store = Store.objects.get(pk='store_id')
+            favorite.store = Store.objects.get(pk=store_id)
             favorite.save()
 
             serializer = FavoriteSerializer(
@@ -506,7 +495,7 @@ class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Favorite
         fields = ("store",)
-        depth = 2
+        depth = 1
 
 
 
