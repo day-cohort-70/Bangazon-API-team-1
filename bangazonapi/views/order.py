@@ -150,10 +150,11 @@ class Orders(ViewSet):
         customer = Customer.objects.get(user=request.auth.user)
         orders = Order.objects.filter(customer=customer)
 
-        payment = self.request.query_params.get("payment_id", None)
+        payment = self.request.query_params.get('payment_id', None)
         if payment is not None:
             orders = orders.filter(payment__id=payment)
 
-        json_orders = OrderSerializer(orders, many=True, context={"request": request})
+        json_orders = OrderSerializer(
+            orders, many=True, context={'request': request})
 
         return Response(json_orders.data)
