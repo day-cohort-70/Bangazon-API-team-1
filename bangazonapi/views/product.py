@@ -2,6 +2,7 @@
 
 from rest_framework.decorators import action
 from bangazonapi.models.recommendation import Recommendation
+from bangazonapi.models.like import Like
 import base64
 from django.core.files.base import ContentFile
 from django.http import HttpResponseServerError
@@ -301,6 +302,7 @@ class Products(ViewSet):
             products = filter(sold_filter, products)
 
         if min_price is not None:
+
             def min_price_filter(product):
                 if product.price >= int(min_price):
                     return True
@@ -309,6 +311,7 @@ class Products(ViewSet):
             products = filter(min_price_filter, products)
 
         if max_price is not None:
+
             def max_price_filter(product):
                 if product.price <= int(max_price):
                     return True
@@ -340,3 +343,81 @@ class Products(ViewSet):
 
         return Response(None, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    @action(methods=["post", "delete"], detail=True)
+    def like(self, request, pk=None):
+        """functionality for liking or disliking a product"""
+
+        if request.method == "POST":
+            """@api {POST} /products/${pk}/like POST - add a like """
+
+            try:
+                customer = Customer.objects.get(user=request.user)
+                product = Product.objects.get(pk=pk)
+
+                # check to see if the like exists already
+                if Like.objects.filter(customer=customer, product=product).exists():
+                    return Response(
+                        {"message": "Product already liked."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                like = Like(customer=customer, product=product)
+                like.save()
+
+                return Response(
+                    {"message": "Liked the product!"}, status=status.HTTP_201_CREATED
+                )
+            except Customer.DoesNotExist:
+                return Response(
+                    {"message": "Customer not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+            except Product.DoesNotExist:
+                return Response(
+                    {"message": "Product not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+        elif request.method == "DELETE":
+            """@api {DELETE} /products/${pk}/like DELETE - remove a like"""
+
+            try:
+                customer = Customer.objects.get(user=request.user)
+                product = Product.objects.get(pk=pk)
+                
+                dislike = Like.objects.get(customer=customer, product=product)
+                dislike.delete()
+                
+                return Response(
+                    {"message": "Unliked the product!"}, status=status.HTTP_204_NO_CONTENT
+                )
+            except Like.DoesNotExist:
+                return Response(
+                    {"message": "No likes for this product"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            except Customer.DoesNotExist:
+                return Response(
+                    {"message": "Customer not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+            except Product.DoesNotExist:
+                return Response(
+                    {"message": "Product not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+    @action(methods=["get"], detail=False)
+    def liked(self, request):
+        """Get all liked products for the customer
+            @api {GET} /products/liked GET all liked products
+        """
+        try:
+            customer = Customer.objects.get(user=request.user)
+            likes = Like.objects.filter(customer=customer)
+            if not likes.exists():
+                return Response(
+                    {"message": "This customer has no likes."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            liked_products = [like.product for like in likes]
+            serializer = ProductSerializer(liked_products, many=True, context={"request": request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Customer.DoesNotExist:
+            return Response(
+                {"message": "Customer not found."}, status=status.HTTP_404_NOT_FOUND
+            )

@@ -8,12 +8,16 @@ from bangazonapi.models import Customer
 
 class CustomerSerializer(serializers.HyperlinkedModelSerializer):
     """JSON serializer for customers"""
+
+    # this creates the new 'likes' field on the serializer - read only
+    # likes = serializers.SerializerMethodField()
+
     class Meta:
         model = Customer
         url = serializers.HyperlinkedIdentityField(
-            view_name='customer', lookup_field='id'
+            view_name="customer", lookup_field="id"
         )
-        fields = ('id', 'url', 'user', 'phone_number', 'address')
+        fields = ("id", "url", "user", "phone_number", "address")
         depth = 1
 
 

@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
-from bangazonapi.models import Order, Customer, Product
+from bangazonapi.models import Order, Customer, Product, Like
 from bangazonapi.models import OrderProduct, Favorite
 from bangazonapi.models import Recommendation
 from .product import ProductSerializer
@@ -40,6 +40,7 @@ class Profile(ViewSet):
         @apiSuccess (200) {String} address Customer address
         @apiSuccess (200) {Object[]} payment_types Array of user's payment types
         @apiSuccess (200) {Object[]} recommends Array of recommendations made by the user
+        @apiSuccess (200) {Object[]} likes Array of products liked by the user
 
         @apiSuccessExample {json} Success
             HTTP/1.1 200 OK
@@ -80,6 +81,14 @@ class Profile(ViewSet):
                         }
                     }
                 ]
+                "likes": [
+                    {
+                        "id": 1,
+                        "name": "Product Name",
+                        "description": "Product Description",
+                        "price": 10.00
+                    }
+                ]
             }
         """
         try:
@@ -87,6 +96,8 @@ class Profile(ViewSet):
             current_user.recommends = Recommendation.objects.filter(
                 recommender=current_user
             )
+
+            # this query returns all Like instances for the current user / customer
 
             serializer = ProfileSerializer(
                 current_user, many=False, context={"request": request}
@@ -388,15 +399,22 @@ class RecommenderSerializer(serializers.ModelSerializer):
         )
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    """JSON serializer for customer profile
+class LikeSerializer(serializers.ModelSerializer):
+    """JSON serializer for likes"""
 
-    Arguments:
-        serializers
-    """
+    product = ProductSerializer()
+
+    class Meta:
+        model = Like
+        fields = ("product",)
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """JSON serializer for customer profile"""
 
     user = UserSerializer(many=False)
     recommends = RecommenderSerializer(many=True)
+    likes = serializers.SerializerMethodField()
 
     class Meta:
         model = Customer
@@ -408,8 +426,14 @@ class ProfileSerializer(serializers.ModelSerializer):
             "address",
             "payment_types",
             "recommends",
+            "likes",
         )
         depth = 1
+
+    def get_likes(self, obj):
+        likes = Like.objects.filter(customer=obj)
+        products = [like.product for like in likes]
+        return ProductSerializer(products, many=True).data
 
 
 class FavoriteUserSerializer(serializers.HyperlinkedModelSerializer):
