@@ -324,22 +324,18 @@ class Products(ViewSet):
                 filtered_products,many=True, context={"request": request}
             )
 
-            return Response({"filtered_products": serializer.data})
+            return Response(serializer.data)
         
         for category in categories: 
 
             products = Product.objects.filter(category=category).order_by('-created_date')[:5]
+            products_by_category[category.name] = products
 
-            products_by_category[category.name] = ProductSerializer(
-                products, many=True, context={"request": request}
-            ).data
 
-            if category.name not in products_by_category:
-                products_by_category[category.name] = []
+        all_products = [product for category_products in products_by_category.values() for product in category_products]
+        serializer = ProductSerializer(all_products, many=True, context={"request": request})
 
-        print("Products by category:", products_by_category)
-
-        return Response({"products_by_category": products_by_category})
+        return Response(serializer.data)
 
         #if order is not None:
             #order_filter = order
