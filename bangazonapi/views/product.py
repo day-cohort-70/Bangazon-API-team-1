@@ -329,13 +329,12 @@ class Products(ViewSet):
         for category in categories: 
 
             products = Product.objects.filter(category=category).order_by('-created_date')[:5]
-            products_by_category[category.name] = products
+            products_by_category[category.name] = ProductSerializer(products,many=True,context={"request":request}).data
 
 
-        all_products = [product for category_products in products_by_category.values() for product in category_products]
-        serializer = ProductSerializer(all_products, many=True, context={"request": request})
+        
 
-        return Response(serializer.data)
+        return Response({"products_by_category": products_by_category})
 
         #if order is not None:
             #order_filter = order
