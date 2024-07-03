@@ -11,8 +11,10 @@ from rest_framework.viewsets import ViewSet
 from bangazonapi.models import Order, Customer, Product
 from bangazonapi.models import OrderProduct, Favorite
 from bangazonapi.models import Recommendation
+from bangazonapi.models import Store
 from .product import ProductSerializer
 from .order import OrderSerializer
+from .store import StoreSerializer
 
 
 class Profile(ViewSet):
@@ -78,8 +80,15 @@ class Profile(ViewSet):
                                 "email": "joe@joeshepherd.com"
                             }
                         }
-                    }
-                ]
+                    },
+                "favorites": [
+                    {
+                        "name": "Girls Just Wanna Have Fun"
+                        "description": "this is a description"
+                        "seller": "",
+                    },
+                ],
+                
             }
         """
         try:
@@ -87,6 +96,9 @@ class Profile(ViewSet):
             current_user.recommends = Recommendation.objects.filter(
                 recommender=current_user
             )
+            favorites = Favorite.objects.filter(customer=current_user)
+            favorite_stores = [favorite.store for favorite in favorites]
+            current_user.favorites = favorite_stores
 
             serializer = ProfileSerializer(
                 current_user, many=False, context={"request": request}
@@ -265,62 +277,115 @@ class Profile(ViewSet):
 
         return Response({}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @action(methods=["get"], detail=False)
+
+
+    @action(methods=["get", "post"], detail=False)
     def favoritesellers(self, request):
-        """
-        @api {GET} /profile/favoritesellers GET favorite sellers
-        @apiName GetFavoriteSellers
-        @apiGroup UserProfile
 
-        @apiHeader {String} Authorization Auth token
-        @apiHeaderExample {String} Authorization
-            Token 9ba45f09651c5b0c404f37a2d2572c026c146611
+        current_user = Customer.objects.get(user=request.auth.user)
 
-        @apiSuccess (200) {id} id Favorite id
-        @apiSuccess (200) {Object} seller Favorited seller
-        @apiSuccess (200) {String} seller.url Seller URI
-        @apiSuccess (200) {String} seller.phone_number Seller phone number
-        @apiSuccess (200) {String} seller.address Seller address
-        @apiSuccess (200) {String} seller.user Seller user profile URI
-        @apiSuccessExample {json} Success
+        if request.method == "GET":
+            """
+            @api {GET} /profile/favoritesellers GET favorite sellers
+            @apiName GetFavoriteSellers
+            @apiGroup UserProfile
+
+            @apiHeader {String} Authorization Auth token
+            @apiHeaderExample {String} Authorization
+                Token 9ba45f09651c5b0c404f37a2d2572c026c146611
+
+            @apiSuccess (200) {id} id Favorite id
+            @apiSuccess (200) {Object} seller Favorited seller
+            @apiSuccess (200) {String} seller.url Seller URI
+            @apiSuccess (200) {String} seller.phone_number Seller phone number
+            @apiSuccess (200) {String} seller.address Seller address
+            @apiSuccess (200) {String} seller.user Seller user profile URI
+            @apiSuccessExample {json} Success One or more list of stores customer has favorited
             [
                 {
-                    "id": 1,
+                    "name": "The Hungry Hippo",
+                    "description": "A quirky store that sells used toys!",
                     "seller": {
-                        "url": "http://localhost:8000/customers/5",
+                        "url": "http://localhost:8000/customers/4",
                         "phone_number": "555-1212",
-                        "address": "100 Endless Way",
-                        "user": "http://localhost:8000/users/6"
-                    }
-                },
-                {
-                    "id": 2,
-                    "seller": {
-                        "url": "http://localhost:8000/customers/6",
-                        "phone_number": "555-1212",
-                        "address": "100 Dauntless Way",
-                        "user": "http://localhost:8000/users/7"
-                    }
-                },
-                {
-                    "id": 3,
-                    "seller": {
-                        "url": "http://localhost:8000/customers/7",
-                        "phone_number": "555-1212",
-                        "address": "100 Indefatiguable Way",
-                        "user": "http://localhost:8000/users/8"
+                        "address": "100 Infinity Way",
+                        "user": {
+                            "first_name": "Steve",
+                            "last_name": "Brownlee",
+                            "username": "steve",
+                            "url": "http://localhost:8000/users/5"
+                        }
                     }
                 }
             ]
-        """
-        customer = Customer.objects.get(user=request.auth.user)
-        favorites = Favorite.objects.filter(customer=customer)
+            """
+           
+            favorites = Favorite.objects.filter(customer=current_user)
+            stores = [favorite.store for favorite in favorites]
+            serializer = FavoriteStoreSerializer(stores, many=True, context={"request": request})
+            return Response(serializer.data)
 
-        serializer = FavoriteSerializer(
-            favorites, many=True, context={"request": request}
-        )
-        return Response(serializer.data)
+        if request.method == "POST":
 
+            store_id = request.data.get("store_id")
+            if not store_id:
+                return Response({"message": "Must provide store ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+            favorite_exists = Favorite.objects.filter(customer=current_user, store=store_id).exists()
+
+            if favorite_exists:
+                return Response({"message": "You have already favorited this store."}, status=status.HTTP_400_BAD_REQUEST)
+
+            favorite = Favorite()
+            favorite.customer = current_user
+            favorite.store = Store.objects.get(pk=store_id)
+            favorite.save()
+
+            serializer = FavoriteSerializer(
+                favorite, many=False, context={"request": request}
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+
+    @action(methods=["get", "post"], detail=False)
+    def store(self, request):
+
+        current_user = Customer.objects.get(user=request.auth.user)
+
+        if request.method == "GET":
+            """
+            @apiGET {GET} /profile/store GETS current customer's store
+            @apiName GetSellerStore
+            @apiGroup SellerStore
+
+            @apiHeader {String} Authorization Auth token
+            @apiHeaderExample {String} Authorization
+                Token 9ba45f09651c5b0c404f37a2d2572c026c14669c
+
+            @apiSuccess (200) {string} store object for Seller
+            @apiSuccessExample {json} Success
+                {
+                    "name": "GAMERZ",
+                    "description": "New and gently used video games",
+                    "seller": {
+                        "id": 7,
+                        "phone_number": "555-1212",
+                        "address": "100 Indefatiguable Way",
+                        "user": 8
+                    }
+                }
+            """
+
+            store = Store.objects.get(seller=current_user)
+            serializer = StoreSerializer(store, many=False, context={"request": request})
+
+            return Response(serializer.data)
+        
+        
+        return Response({'message': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        
 
 class LineItemSerializer(serializers.HyperlinkedModelSerializer):
     """JSON serializer for products
@@ -388,6 +453,52 @@ class RecommenderSerializer(serializers.ModelSerializer):
         )
 
 
+class FavoriteUserSerializer(serializers.HyperlinkedModelSerializer):
+    """JSON serializer for favorite sellers user
+
+    Arguments:
+        serializers
+    """
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "username", "url",)
+        depth = 1
+
+
+class FavoriteSellerSerializer(serializers.HyperlinkedModelSerializer):
+    """JSON serializer for favorite sellers"""
+
+    user = FavoriteUserSerializer(many=False)
+
+    class Meta:
+        model = Customer
+        fields = (
+            "url", "phone_number", "address", "user",)
+        depth = 1
+
+
+class FavoriteStoreSerializer(serializers.HyperlinkedModelSerializer):
+    """JSON serializer for favorite stores"""
+    seller = FavoriteSellerSerializer(many=False)
+
+    class Meta:
+        model = Store
+        fields = ("name", "description", "seller",)
+        depth = 1
+
+
+class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
+    """JSON serializer for favorites"""
+    store = FavoriteStoreSerializer(many=False)
+
+    class Meta:
+        model = Favorite
+        fields = ("store",)
+        depth = 1
+
+
+
 class ProfileSerializer(serializers.ModelSerializer):
     """JSON serializer for customer profile
 
@@ -397,6 +508,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     user = UserSerializer(many=False)
     recommends = RecommenderSerializer(many=True)
+    favorites = FavoriteStoreSerializer(many=True)
 
     class Meta:
         model = Customer
@@ -408,52 +520,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             "address",
             "payment_types",
             "recommends",
+            "favorites",
         )
         depth = 1
-
-
-class FavoriteUserSerializer(serializers.HyperlinkedModelSerializer):
-    """JSON serializer for favorite sellers user
-
-    Arguments:
-        serializers
-    """
-
-    class Meta:
-        model = User
-        fields = ("first_name", "last_name", "username")
-        depth = 1
-
-
-class FavoriteSellerSerializer(serializers.HyperlinkedModelSerializer):
-    """JSON serializer for favorite sellers
-
-    Arguments:
-        serializers
-    """
-
-    user = FavoriteUserSerializer(many=False)
-
-    class Meta:
-        model = Customer
-        fields = (
-            "id",
-            "url",
-            "user",
-        )
-        depth = 1
-
-
-class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
-    """JSON serializer for favorites
-
-    Arguments:
-        serializers
-    """
-
-    seller = FavoriteSellerSerializer(many=False)
-
-    class Meta:
-        model = Favorite
-        fields = ("id", "seller")
-        depth = 2
