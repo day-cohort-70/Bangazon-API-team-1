@@ -67,6 +67,36 @@ class OrderTests(APITestCase):
         self.assertEqual(json_response["size"], 1)
         self.assertEqual(len(json_response["lineitems"]), 1)
 
+    def test_add_payment_to_order(self):
+        """
+        Ensure we can add a product to an order.
+        """
+        # Add product to order
+        url = "/profile/cart"
+        data = { "product_id": 1 }
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Get cart and verify product was added
+        url = "/cart/1"
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.get(url, None, format='json')
+
+
+        # Add payment to order
+        url = "/orders/1"
+        data = { "payment_type": 1 }
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Check to make sure there is no cart, which happens when a payment is added.
+        url = "/profile/cart"
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.get(url, None, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 
     def test_remove_product_from_order(self):
         """
