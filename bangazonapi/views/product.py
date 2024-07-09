@@ -102,6 +102,8 @@ class Products(ViewSet):
                 }
             }
         """
+        #Following lines of code create a new instance of Product model
+        # and assigns value from request data
         new_product = Product()
         new_product.name = request.data["name"]
         new_product.price = request.data["price"]
@@ -109,14 +111,17 @@ class Products(ViewSet):
         new_product.quantity = request.data["quantity"]
         new_product.location = request.data["location"]
 
+        #Retrieves the customer instance associated with the authenticated user
         customer = Customer.objects.get(user=request.auth.user)
         product_category = ProductCategory.objects.get(pk=request.data["category_id"])
 
         new_product.customer = customer
         new_product.category = product_category
 
+        #Initializes ProductSerializer with the request data.
         serializer = ProductSerializer(data=request.data)
         if serializer.is_valid():
+            #Handles Image Uploads
             if "image_path" in request.data:
                 format, imgstr = request.data["image_path"].split(";base64,")
                 ext = format.split("/")[-1]
@@ -124,11 +129,16 @@ class Products(ViewSet):
                     base64.b64decode(imgstr),
                     name=f'{new_product.id}-{request.data["name"]}.{ext}',
                 )
-                new_product.image_path = data
+                new_product.image_path.save(data.name,data,save=False)
+
+            
+            elif "image_url" in request.data:
+                new_product.image_path = request.data["image_url"]
 
             new_product.save()
+            serializer = ProductSerializer(new_product,context={'request':request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+        #Error Catch
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, pk=None):
@@ -264,65 +274,115 @@ class Products(ViewSet):
                 }
             ]
         """
-        products = Product.objects.all()
+        categories = ProductCategory.objects.all()
+        products_by_category = {}
 
-        # Support filtering by category and/or quantity
-        category = self.request.query_params.get("category", None)
+        # Support filtering by category 
+        search_term = self.request.query_params.get("search", None)
+        category_filter = self.request.query_params.get("category", None)
         quantity = self.request.query_params.get("quantity", None)
         order = self.request.query_params.get("order_by", None)
         direction = self.request.query_params.get("direction", None)
-        number_sold = self.request.query_params.get("number_sold", None)
+        min_number_sold = self.request.query_params.get("number_sold", None)
         min_price = self.request.query_params.get("min_price", None)
         max_price = self.request.query_params.get("max_price", None)
-        location = self.request.query_params.get("location", None)
+        location_contains = self.request.query_params.get("location", None)
 
-        if order is not None:
-            order_filter = order
 
-        if direction is not None:
-            if direction == "desc":
-                order_filter = f"-{order}"
+        #checks if the user has provided any filters to apply to the product list.
+        if any([search_term, category_filter, quantity, order, direction, min_number_sold, min_price, max_price, location_contains]):
+            filtered_products = Product.objects.all()
+            #Apply search term filter
+            if search_term:
+                filtered_products = [product for product in filtered_products if search_term.lower() in product.name.lower()]
+            #Apply category filter
+            if category_filter:
+                filtered_products = filtered_products.filter(category__id=category_filter)
+            #Apply quantity filter
+            if quantity:
+                filtered_products = filtered_products.filter(quantity__gte=quantity)
+                                        #gte is a built in Django query syntax for greater than or equal to.
+            if order:
+                order_filter = order
+                if direction == "desc":
+                    order_filter = f"-{order}"
+                filtered_products = filtered_products.order_by(order_filter)
 
-                products = products.order_by(order_filter)
+            if min_number_sold:
+                filtered_products = filtered_products.filter(number_sold__gte=min_number_sold)
 
-        if category is not None:
-            products = products.filter(category__id=category)
+            if min_price:
+                filtered_products = filtered_products.filter(price__gte=min_price)
 
-        if quantity is not None:
-            products = products.order_by("-created_date")[: int(quantity)]
+            if max_price:
+                filtered_products = filtered_products.filter(price__lte=max_price)
 
-        if number_sold is not None:
+            if location_contains:
+                filtered_products = filtered_products.filter(location__icontains=location_contains)
 
-            def sold_filter(product):
-                if product.number_sold >= int(number_sold):
-                    return True
-                return False
+            serializer = ProductSerializer(
+                filtered_products,many=True, context={"request": request}
+            )
 
-            products = filter(sold_filter, products)
+            return Response(serializer.data)
+        
+        for category in categories: 
 
-        if min_price is not None:
-            def min_price_filter(product):
-                if product.price >= int(min_price):
-                    return True
-                return False
+            products = Product.objects.filter(category=category).order_by('-created_date')[:5]
+            products_by_category[category.name] = ProductSerializer(products,many=True,context={"request":request}).data
 
-            products = filter(min_price_filter, products)
 
-        if max_price is not None:
-            def max_price_filter(product):
-                if product.price <= int(max_price):
-                    return True
-                return False
+        
 
-            products = filter(max_price_filter, products)
+        return Response({"products_by_category": products_by_category})
 
-        if location is not None:
-            products = products.filter(location__contains=location)
+        #if order is not None:
+            #order_filter = order
 
-        serializer = ProductSerializer(
-            products, many=True, context={"request": request}
-        )
-        return Response(serializer.data)
+        #if direction is not None:
+            #if direction == "desc":
+                #order_filter = f"-{order}"
+
+                #products = products.order_by(order_filter)
+
+        #if category is not None:
+            #products = products.filter(category__id=category)
+
+        #if quantity is not None:
+            #products = products.order_by("-created_date")[: int(quantity)]
+
+        #if number_sold is not None:
+
+            #def sold_filter(product):
+                #if product.number_sold >= int(number_sold):
+                    #return True
+                #return False
+
+            #products = filter(sold_filter, products)
+
+        #if min_price is not None:
+            #def min_price_filter(product):
+                #if product.price >= int(min_price):
+                    #return True
+                #return False
+
+            #products = filter(min_price_filter, products)
+
+        #if max_price is not None:
+            #def max_price_filter(product):
+                #if product.price <= int(max_price):
+                    #return True
+                #return False
+
+            #products = filter(max_price_filter, products)
+
+        #if location is not None:
+            #products = products.filter(location__contains=location)
+
+        #serializer = ProductSerializer(
+            #products, many=True, context={"request": request}
+        #)
+        #return Response(serializer.data)
 
     @action(methods=["post"], detail=True)
     def recommend(self, request, pk=None):
