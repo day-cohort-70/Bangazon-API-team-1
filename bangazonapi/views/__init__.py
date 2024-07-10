@@ -11,4 +11,3 @@ from .customer import Customers
 from .user import Users
 from .store import Stores
 from .ordersreport import OrdersReportView
-
