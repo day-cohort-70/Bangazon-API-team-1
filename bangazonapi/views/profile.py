@@ -1,5 +1,3 @@
-"""View module for handling requests about customer profiles"""
-
 import datetime
 from django.http import HttpResponseServerError
 from django.contrib.auth.models import User
@@ -8,13 +6,15 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
-from bangazonapi.models import Order, Customer, Product
+from bangazonapi.models import Order, Customer, Product, Like
 from bangazonapi.models import OrderProduct, Favorite
 from bangazonapi.models import Recommendation
 from bangazonapi.models import Store
 from .product import ProductSerializer
 from .order import OrderSerializer
 from .store import StoreSerializer
+
+"""View module for handling requests about customer profiles"""
 
 
 class Profile(ViewSet):
@@ -88,7 +88,7 @@ class Profile(ViewSet):
                         "seller": "",
                     },
                 ],
-                
+
             }
         """
         try:
@@ -277,8 +277,6 @@ class Profile(ViewSet):
 
         return Response({}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-
-
     @action(methods=["get", "post"], detail=False)
     def favoritesellers(self, request):
 
@@ -319,22 +317,32 @@ class Profile(ViewSet):
                 }
             ]
             """
-           
+
             favorites = Favorite.objects.filter(customer=current_user)
             stores = [favorite.store for favorite in favorites]
-            serializer = FavoriteStoreSerializer(stores, many=True, context={"request": request})
+            serializer = FavoriteStoreSerializer(
+                stores, many=True, context={"request": request}
+            )
             return Response(serializer.data)
 
         if request.method == "POST":
 
             store_id = request.data.get("store_id")
             if not store_id:
-                return Response({"message": "Must provide store ID."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"message": "Must provide store ID."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-            favorite_exists = Favorite.objects.filter(customer=current_user, store=store_id).exists()
+            favorite_exists = Favorite.objects.filter(
+                customer=current_user, store=store_id
+            ).exists()
 
             if favorite_exists:
-                return Response({"message": "You have already favorited this store."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"message": "You have already favorited this store."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             favorite = Favorite()
             favorite.customer = current_user
@@ -345,8 +353,6 @@ class Profile(ViewSet):
                 favorite, many=False, context={"request": request}
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
 
     @action(methods=["get", "post"], detail=False)
     def store(self, request):
@@ -378,14 +384,16 @@ class Profile(ViewSet):
             """
 
             store = Store.objects.get(seller=current_user)
-            serializer = StoreSerializer(store, many=False, context={"request": request})
+            serializer = StoreSerializer(
+                store, many=False, context={"request": request}
+            )
 
             return Response(serializer.data)
-        
-        
-        return Response({'message': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        
-        
+
+        return Response(
+            {"message": "Method not allowed"}, status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
 
 class LineItemSerializer(serializers.HyperlinkedModelSerializer):
     """JSON serializer for products
@@ -462,7 +470,12 @@ class FavoriteUserSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = User
-        fields = ("first_name", "last_name", "username", "url",)
+        fields = (
+            "first_name",
+            "last_name",
+            "username",
+            "url",
+        )
         depth = 1
 
 
@@ -474,22 +487,32 @@ class FavoriteSellerSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Customer
         fields = (
-            "url", "phone_number", "address", "user",)
+            "url",
+            "phone_number",
+            "address",
+            "user",
+        )
         depth = 1
 
 
 class FavoriteStoreSerializer(serializers.HyperlinkedModelSerializer):
     """JSON serializer for favorite stores"""
+
     seller = FavoriteSellerSerializer(many=False)
 
     class Meta:
         model = Store
-        fields = ("name", "description", "seller",)
+        fields = (
+            "name",
+            "description",
+            "seller",
+        )
         depth = 1
 
 
 class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
     """JSON serializer for favorites"""
+
     store = FavoriteStoreSerializer(many=False)
 
     class Meta:
@@ -498,17 +521,23 @@ class FavoriteSerializer(serializers.HyperlinkedModelSerializer):
         depth = 1
 
 
+class LikeSerializer(serializers.ModelSerializer):
+    """JSON serializer for likes"""
+
+    product = ProductSerializer()
+
+    class Meta:
+        model = Like
+        fields = ("product",)
+
 
 class ProfileSerializer(serializers.ModelSerializer):
-    """JSON serializer for customer profile
-
-    Arguments:
-        serializers
-    """
+    """JSON serializer for customer profile"""
 
     user = UserSerializer(many=False)
     recommends = RecommenderSerializer(many=True)
     favorites = FavoriteStoreSerializer(many=True)
+    likes = serializers.SerializerMethodField()
 
     class Meta:
         model = Customer
@@ -521,5 +550,11 @@ class ProfileSerializer(serializers.ModelSerializer):
             "payment_types",
             "recommends",
             "favorites",
+            "likes",
         )
         depth = 1
+
+    def get_likes(self, obj):
+        likes = Like.objects.filter(customer=obj)
+        products = [like.product for like in likes]
+        return ProductSerializer(products, many=True).data
