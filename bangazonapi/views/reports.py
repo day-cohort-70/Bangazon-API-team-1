@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from ..models import Product
+from bangazonapi.models import *
 
 
 def expensive_products_report(request):
@@ -13,13 +14,17 @@ def expensive_products_report(request):
         request, "expensive_products_report.html", {"products": expensive_products}
     )
   
-from bangazonapi.models import *
-
 
 def CompletedOrders(request):
 
-    orders = Order.objects.filter(payment_type__isnull=False)
-    
+    query_param = request.GET.get('status', None)
+    orders = Order.objects.all()
+
+    if query_param == 'complete':
+        orders = Order.objects.filter(payment_type__isnull=False)
+
+    if query_param == 'incomplete':
+        orders = Order.objects.filter(payment_type__isnull=True)
+
 
     return render(request, 'completedorders.html', {'orders': orders})
-
