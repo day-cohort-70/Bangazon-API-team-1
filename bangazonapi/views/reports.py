@@ -12,3 +12,14 @@ def expensive_products_report(request):
     return render(
         request, "expensive_products_report.html", {"products": expensive_products}
     )
+  
+from bangazonapi.models import *
+
+
+def CompletedOrders(request):
+
+    orders = Order.objects.filter(payment_type__isnull=False)
+    
+
+    return render(request, 'completedorders.html', {'orders': orders})
+
