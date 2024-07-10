@@ -3,7 +3,6 @@ from django.urls import include, path
 from django.conf.urls.static import static
 from rest_framework import routers
 from rest_framework.authtoken.views import obtain_auth_token
-from bangazonapi.views import reports
 from bangazonapi.models import *
 from bangazonapi.views import *
 
@@ -30,6 +29,5 @@ urlpatterns = [
     path('login', login_user),
     path('api-token-auth', obtain_auth_token),
     path('orders/report/', OrdersReportView.as_view(), name='orders-report'),
-    path('reports/orders', reports.CompletedOrders, name='completed_orders'),
     path('api-auth', include('rest_framework.urls', namespace='rest_framework')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
