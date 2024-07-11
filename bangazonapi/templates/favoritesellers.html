@@ -6,6 +6,7 @@
         </title>
     </head>
     <body>
+        <h1>{{ customer.user.first_name }} {{ customer.user.last_name }}'s Favorite Sellers</h1>
         <ul>
             {% for seller in sellers %}
                 <li>{{ seller.store.seller.user.first_name }} {{ seller.store.seller.user.last_name }}</li>
