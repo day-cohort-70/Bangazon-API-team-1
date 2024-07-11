@@ -13,6 +13,16 @@ def expensive_products_report(request):
         request, "expensive_products_report.html", {"products": expensive_products}
     )
   
+
+
+def inexpensive_products_report(request):
+    inexpensive_products = Product.objects.filter(price__lte=999)
+    print(f"Found {inexpensive_products.count()} inexpensive products less than $1000")
+
+    return render(
+        request, "inexpensive_products_report.html", {"products": inexpensive_products}
+    )
+
 from bangazonapi.models import *
 
 
