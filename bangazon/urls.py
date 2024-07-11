@@ -33,4 +33,5 @@ urlpatterns = [
     path("reports/expensiveproducts", expensive_products_report, name="expensive_products_report"),
     path('orders/report/', OrdersReportView.as_view(), name='orders-report'),
     path('reports/orders', reports.CompletedOrders, name='completed_orders'),
+    path('reports/favoritesellers', FavoriteSellers, name='favorite_sellers')
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
