@@ -39,7 +39,7 @@ class PaymentTests(APITestCase):
         self.assertEqual(json_response["account_number"], "111-1111-1111")
         self.assertEqual(json_response["expiration_date"], "2024-12-31")
         self.assertEqual(json_response["create_date"], str(datetime.date.today()))
-        return json_response["id"]
+        
 
     # TODO: Delete payment type
     
