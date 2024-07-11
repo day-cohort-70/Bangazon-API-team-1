@@ -7,7 +7,7 @@ from rest_framework.test import APITestCase
 class ProductTests(APITestCase):
     def setUp(self) -> None:
         """
-        Create a new account and create sample category
+        Create a new account, a sample category, and a product
         """
         url = "/register"
         data = {"username": "steve", "password": "Admin8*", "email": "steve@stevebrownlee.com",
@@ -17,15 +17,20 @@ class ProductTests(APITestCase):
         self.token = json_response["token"]
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+        # create product category
         url = "/productcategories"
         data = {"name": "Sporting Goods"}
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
-
         response = self.client.post(url, data, format='json')
-        json_response = json.loads(response.content)
-
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(json_response["name"], "Sporting Goods")
+
+        # create a product
+        url = "/products"
+        data = { "name": "Kite", "price": 14.99, "quantity": 60, "description": "It flies high", "category_id": 1, "location": "Pittsburgh" }
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
 
     def test_create_product(self):
         """
@@ -97,4 +102,32 @@ class ProductTests(APITestCase):
 
     # TODO: Delete product
 
-    # TODO: Product can be rated. Assert average rating exists.
+    def test_rate_product(self):
+        """Ensure we can rate a product & that average rating exists for product"""
+    
+        # rate the available product
+        url = "/productratings"
+        data = {
+            "rating": 5,
+            "customer_id": 1,
+            "product_id": 1
+        }
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.post(url, data, format='json')
+        json_response = json.loads(response.content)
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(json_response["rating"], 5)
+        self.assertEqual(json_response["customer_id"], 1)
+        self.assertEqual(json_response["product_id"], 1)
+
+
+        # check to see if average rating exists for that product
+        url = '/products/1'
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
+        response = self.client.get(url, None, format='json')
+        json_response = json.loads(response.content)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(json_response["average_rating"], 5)
+
