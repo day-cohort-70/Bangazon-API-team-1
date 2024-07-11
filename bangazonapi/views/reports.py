@@ -26,5 +26,18 @@ def CompletedOrders(request):
     if query_param == 'incomplete':
         orders = Order.objects.filter(payment_type__isnull=True)
 
-
     return render(request, 'completedorders.html', {'orders': orders})
+
+
+def FavoriteSellers(request):
+
+    query_param = request.GET.get('customer', None)
+    favorite_sellers = None
+    customer = None
+    
+    if query_param is not None:
+        customer_id = int(query_param)
+        customer = Customer.objects.get(pk=customer_id)
+        favorite_sellers = Favorite.objects.filter(customer_id=customer_id)
+
+    return render(request, 'favoritesellers.html', {'sellers': favorite_sellers, 'customer': customer})
