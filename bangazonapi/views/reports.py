@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from ..models import Product
+from bangazonapi.models import *
 
 
 def expensive_products_report(request):
@@ -15,6 +16,7 @@ def expensive_products_report(request):
   
 
 
+
 def inexpensive_products_report(request):
     inexpensive_products = Product.objects.filter(price__lte=999)
     print(f"Found {inexpensive_products.count()} inexpensive products less than $1000")
@@ -23,13 +25,33 @@ def inexpensive_products_report(request):
         request, "inexpensive_products_report.html", {"products": inexpensive_products}
     )
 
-from bangazonapi.models import *
+
+
 
 
 def CompletedOrders(request):
 
-    orders = Order.objects.filter(payment_type__isnull=False)
-    
+    query_param = request.GET.get('status', None)
+    orders = Order.objects.all()
+
+    if query_param == 'complete':
+        orders = Order.objects.filter(payment_type__isnull=False)
+
+    if query_param == 'incomplete':
+        orders = Order.objects.filter(payment_type__isnull=True)
 
     return render(request, 'completedorders.html', {'orders': orders})
 
+
+def FavoriteSellers(request):
+
+    query_param = request.GET.get('customer', None)
+    favorite_sellers = None
+    customer = None
+    
+    if query_param is not None:
+        customer_id = int(query_param)
+        customer = Customer.objects.get(pk=customer_id)
+        favorite_sellers = Favorite.objects.filter(customer_id=customer_id)
+
+    return render(request, 'favoritesellers.html', {'sellers': favorite_sellers, 'customer': customer})
