@@ -31,7 +31,7 @@ class StoreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Store
-        fields = ('name', 'description', 'seller',)
+        fields = ('id', 'name', 'description', 'seller')
         depth = 1
         
 
@@ -73,5 +73,44 @@ class Stores(ViewSet):
         except Store.DoesNotExist as ex:
             return Response({'message': 'There are no stores'}, status=status.HTTP_404_NOT_FOUND)
         
+        except Exception as ex:
+            return HttpResponseServerError(ex)
+
+    def create(self, request):
+        """
+        Creates a new store.
+        """
+        # Extract data from the request
+        name = request.data.get('name')
+        description = request.data.get('description')
+
+        # Check if the customer already exists
+        current_user = Customer.objects.get(user=request.auth.user)
+
+        try:
+            store = Store.objects.get(seller=current_user)
+            print(store.id)
+        except Customer.DoesNotExist:
+            # If the store does not exist, create one
+            store = Store.objects.create(name=name, description=description, seller=current_user)        
+
+        # Return the created store
+        serializer = StoreSerializer(store, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def retrieve(self, request, pk=None):
+        try:
+            store = Store.objects.get(pk=pk)
+            serializer = StoreSerializer(store, context={"request": request})
+            return Response(serializer.data)
+
+        except store.DoesNotExist :
+            return Response(
+                {
+                    "message": "The requested store does not exist, or you do not have permission to access it."
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         except Exception as ex:
             return HttpResponseServerError(ex)
